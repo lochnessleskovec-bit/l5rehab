@@ -264,21 +264,20 @@ const exs=[
    }}
 ];
 
-let cur=0,animT=0,playing=false,rafId=null,lastTs=null,voiceOn=false,lastSi=-1,speaking=false;
-const DUR=9000;
+let cur=0,animT=0,playing=false,rafId=null,lastTs=null,voiceOn=false,curPhase=0,phaseAnimT=0,waitingForSpeech=false;
+const PHASE_DUR=2800;
 const synth=window.speechSynthesis;
 let voiceCZ=null;
 function loadV(){const vv=synth.getVoices();voiceCZ=vv.find(v=>v.lang.startsWith('cs'))||vv.find(v=>v.lang.startsWith('sk'))||null;}
 loadV();if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=loadV;
 
-function speak(txt){
-  if(!voiceOn||!txt)return;
-  synth.cancel();speaking=true;
+function speak(txt,onDone){
+  if(!voiceOn||!txt){if(onDone)setTimeout(onDone,100);return;}
+  synth.cancel();
   const u=new SpeechSynthesisUtterance(txt);
-  if(voiceCZ)u.voice=voiceCZ;u.lang=voiceCZ?voiceCZ.lang:'cs-CZ';u.rate=.82;u.pitch=1;
-  u.onstart=()=>{speaking=true;};
-  u.onend=()=>{speaking=false;};
-  u.onerror=()=>{speaking=false;};
+  if(voiceCZ)u.voice=voiceCZ;u.lang=voiceCZ?voiceCZ.lang:'cs-CZ';u.rate=.82;
+  u.onend=()=>{if(onDone)onDone();};
+  u.onerror=()=>{if(onDone)onDone();};
   synth.speak(u);
 }
 
@@ -291,18 +290,49 @@ function resizeCanvas(){
   cv.width=w;cv.height=h;
 }
 
-function getPhaseIdx(ex,t){let si=0;for(let i=0;i<ex.phaseAt.length;i++)if(t>=ex.phaseAt[i])si=i;return si;}
+function getPhaseT(ex,phase,localT){
+  const start=ex.phaseAt[phase];
+  const end=phase+1<ex.phaseAt.length?ex.phaseAt[phase+1]:1;
+  return start+(end-start)*localT;
+}
 
-function drawFrame(){
+function drawAtPhase(phase,localT){
   const ex=exs[cur];const cv=document.getElementById('cv');
-  ex.draw(cv.getContext('2d'),animT,cv.width,cv.height);
-  const si=getPhaseIdx(ex,animT);
-  document.getElementById('pill').textContent=ex.phases[si];
-  document.getElementById('prog').style.width=(animT*100)+'%';
+  const t=getPhaseT(ex,phase,localT);
+  ex.draw(cv.getContext('2d'),t,cv.width,cv.height);
+  document.getElementById('pill').textContent=ex.phases[phase];
+  document.getElementById('prog').style.width=((phase+localT)/ex.phases.length*100)+'%';
   document.getElementById('steps').innerHTML=ex.steps.map((s,i)=>
-    `<div class="step-chip${i===si?' on':''}"><div class="sn">${i+1}</div><div class="step-txt-chip">${s}</div></div>`
+    `<div class="step-chip${i===phase?' on':''}"><div class="sn">${i+1}</div><div class="step-txt-chip">${s}</div></div>`
   ).join('');
-  if(si!==lastSi){lastSi=si;speak(ex.steps[si]);}
+}
+
+function runPhase(phase){
+  if(!playing)return;
+  const ex=exs[cur];
+  drawAtPhase(phase,0);
+  speak(ex.steps[phase],()=>{
+    if(!playing)return;
+    animatePhase(phase,0,null,()=>{
+      const next=phase+1;
+      if(next<ex.phases.length)runPhase(next);
+      else setTimeout(()=>{if(playing){curPhase=0;runPhase(0);}},600);
+    });
+  });
+}
+
+function animatePhase(phase,startT,lastTsLocal,onDone){
+  if(!playing){return;}
+  const now=performance.now();
+  if(lastTsLocal===null)lastTsLocal=now;
+  const dt=now-lastTsLocal;
+  const localT=Math.min(1,startT+dt/PHASE_DUR);
+  drawAtPhase(phase,localT);
+  if(localT<1){
+    rafId=requestAnimationFrame(()=>animatePhase(phase,localT,now,onDone));
+  } else {
+    if(onDone)onDone();
+  }
 }
 
 function renderUI(){
@@ -312,36 +342,25 @@ function renderUI(){
   const tabsEl=document.getElementById('tabs');
   tabsEl.innerHTML=exs.map((e,i)=>`<button class="tab${i===cur?' on':''}" data-i="${i}">${e.name}</button>`).join('');
   tabsEl.querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
-    cur=+b.dataset.i;stopAnim();animT=0;lastSi=-1;renderUI();drawFrame();
+    cur=+b.dataset.i;stopAnim();curPhase=0;renderUI();drawAtPhase(0,0);
     tabsEl.querySelectorAll('.tab')[cur].scrollIntoView({behavior:'smooth',inline:'center'});
   }));
-  drawFrame();
+  drawAtPhase(0,0);
 }
 
-function tick(ts){
-  if(!lastTs)lastTs=ts;
-  const dt=ts-lastTs;lastTs=ts;
-  const ex=exs[cur];
-  const si=getPhaseIdx(ex,animT);
-  if(si!==lastSi&&speaking&&voiceOn){rafId=requestAnimationFrame(tick);return;}
-  animT=Math.min(1,animT+dt/DUR);
-  drawFrame();
-  if(animT<1)rafId=requestAnimationFrame(tick);
-  else setTimeout(()=>{animT=0;lastSi=-1;if(playing)startAnim();else drawFrame();},700);
-}
-function startAnim(){playing=true;lastTs=null;rafId=requestAnimationFrame(tick);document.getElementById('btnP').textContent='Pauza';}
+function startAnim(){playing=true;document.getElementById('btnP').textContent='Pauza';runPhase(curPhase);}
 function stopAnim(){playing=false;if(rafId)cancelAnimationFrame(rafId);document.getElementById('btnP').textContent='Přehrát';synth.cancel();}
 
 document.getElementById('btnP').addEventListener('click',()=>playing?stopAnim():startAnim());
-document.getElementById('btnR').addEventListener('click',()=>{stopAnim();animT=0;lastSi=-1;drawFrame();});
+document.getElementById('btnR').addEventListener('click',()=>{stopAnim();curPhase=0;drawAtPhase(0,0);});
 document.getElementById('btnV').addEventListener('click',()=>{
   voiceOn=!voiceOn;
   document.getElementById('btnV').classList.toggle('on',voiceOn);
   document.getElementById('vLabel').textContent=voiceOn?'Hlas: zap.':'Hlas: vyp.';
-  if(voiceOn)speak(exs[cur].steps[getPhaseIdx(exs[cur],animT)]);else synth.cancel();
+  if(!voiceOn)synth.cancel();
 });
 
-window.addEventListener('resize',()=>{resizeCanvas();drawFrame();});
+window.addEventListener('resize',()=>{resizeCanvas();drawAtPhase(curPhase,0);});
 resizeCanvas();renderUI();
 </script>
 <script>if("serviceWorker"in navigator)navigator.serviceWorker.register("./sw.js");</script>
