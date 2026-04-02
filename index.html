@@ -264,17 +264,22 @@ const exs=[
    }}
 ];
 
-let cur=0,animT=0,playing=false,rafId=null,lastTs=null,voiceOn=false,lastSi=-1;
-const DUR=5500;
+let cur=0,animT=0,playing=false,rafId=null,lastTs=null,voiceOn=false,lastSi=-1,speaking=false;
+const DUR=9000;
 const synth=window.speechSynthesis;
 let voiceCZ=null;
 function loadV(){const vv=synth.getVoices();voiceCZ=vv.find(v=>v.lang.startsWith('cs'))||vv.find(v=>v.lang.startsWith('sk'))||null;}
 loadV();if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=loadV;
 
 function speak(txt){
-  if(!voiceOn||!txt)return;synth.cancel();
+  if(!voiceOn||!txt)return;
+  synth.cancel();speaking=true;
   const u=new SpeechSynthesisUtterance(txt);
-  if(voiceCZ)u.voice=voiceCZ;u.lang=voiceCZ?voiceCZ.lang:'cs-CZ';u.rate=.88;synth.speak(u);
+  if(voiceCZ)u.voice=voiceCZ;u.lang=voiceCZ?voiceCZ.lang:'cs-CZ';u.rate=.82;u.pitch=1;
+  u.onstart=()=>{speaking=true;};
+  u.onend=()=>{speaking=false;};
+  u.onerror=()=>{speaking=false;};
+  synth.speak(u);
 }
 
 function resizeCanvas(){
@@ -314,7 +319,13 @@ function renderUI(){
 }
 
 function tick(ts){
-  if(!lastTs)lastTs=ts;animT=Math.min(1,animT+(ts-lastTs)/DUR);lastTs=ts;drawFrame();
+  if(!lastTs)lastTs=ts;
+  const dt=ts-lastTs;lastTs=ts;
+  const ex=exs[cur];
+  const si=getPhaseIdx(ex,animT);
+  if(si!==lastSi&&speaking&&voiceOn){rafId=requestAnimationFrame(tick);return;}
+  animT=Math.min(1,animT+dt/DUR);
+  drawFrame();
   if(animT<1)rafId=requestAnimationFrame(tick);
   else setTimeout(()=>{animT=0;lastSi=-1;if(playing)startAnim();else drawFrame();},700);
 }
