@@ -217,7 +217,8 @@ canvas{border-radius:10px;max-width:100%;width:100%}
     <div class="ex-name" id="ex-name"></div>
     <div class="ex-desc" id="ex-desc"></div>
     <div class="meta-row" id="ex-meta"></div>
-    <div class="voice-row">
+    <div id="l5-rep-count" style="font-size:22px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;text-align:center;padding:8px 0;letter-spacing:.05em">1. opakování</div>
+  <div class="voice-row">
       <div class="vdot" id="vdot"></div>
       <span class="vlabel" id="vlabel">Hlas: vypnutý</span>
       <button class="vbtn" id="vbtn" onclick="toggleVoice()">Zapnout</button>
@@ -268,18 +269,18 @@ canvas{border-radius:10px;max-width:100%;width:100%}
 </div>
 
 <script>
-const PHASES=[
+var PHASES=[
   {label:'Fáze 1',title:'Uvolnění',desc:'Každý den. Snižuje tlak na nerv L5.',color:'#4fc3f7',ids:[0,4,1],start:0},
   {label:'Fáze 2',title:'Stabilizace',desc:'Od 5. dne. Posiluje hluboké svaly páteře.',color:'#81c784',ids:[2,5,6],start:4},
   {label:'Fáze 3',title:'Posílení',desc:'Od 12. dne. Prevence návratu obtíží.',color:'#ffb74d',ids:[7,3],start:11}
 ];
-const PLAN={
+var PLAN={
   0:[0,4,1],1:[0,4,1],2:[0,4,1],3:[0,4,1],
   4:[0,4,1,2,5,6],5:[0,4,1,2,5,6],6:[0,4,1,2,5,6],7:[0,4,1,2,5,6],
   8:[0,4,1,2,5,6],9:[0,4,1,2,5,6],10:[0,4,1,2,5,6],
   11:[0,4,1,2,5,6,7,3]
 };
-let db={startDate:null,done:{},exDone:{}};
+var db={startDate:null,done:{},exDone:{}};
 function saveDB(){try{localStorage.setItem('l5v2',JSON.stringify(db));}catch(e){}}
 function loadDB(){try{const d=localStorage.getItem('l5v2');if(d)db=JSON.parse(d);}catch(e){}if(!db.startDate){db.startDate=toStr(new Date());saveDB();}}
 function toStr(d){return d.toISOString().slice(0,10);}
@@ -289,7 +290,7 @@ function dayN(dateStr){return Math.floor((new Date(dateStr)-startDate())/8640000
 function planFor(dateStr){const n=Math.max(0,dayN(dateStr));return PLAN[Math.min(n,11)]||PLAN[11];}
 function currentPhaseIdx(){const n=Math.max(0,dayN(todayStr()));return n<4?0:n<11?1:2;}
 
-const C={head:'#FDDCB5',headD:'#E8B88A',trunk:'#4fc3f7',trunkD:'#0288d1',legR:'#ef9a9a',legRD:'#e53935',legL:'#ce93d8',legLD:'#8e24aa',arm:'#a5d6a7',armD:'#388e3c',move:'#81c784',moveD:'#2e7d32',spine:'#29b6f6',ground:'#1d3a55',gf:'#162d42'};
+var C={head:'#FDDCB5',headD:'#E8B88A',trunk:'#4fc3f7',trunkD:'#0288d1',legR:'#ef9a9a',legRD:'#e53935',legL:'#ce93d8',legLD:'#8e24aa',arm:'#a5d6a7',armD:'#388e3c',move:'#81c784',moveD:'#2e7d32',spine:'#29b6f6',ground:'#1d3a55',gf:'#162d42'};
 function ease(x){return x<.5?2*x*x:1-Math.pow(-2*x+2,2)/2}
 function seg(ctx,x1,y1,x2,y2,w,f,s){const dx=x2-x1,dy=y2-y1,l=Math.sqrt(dx*dx+dy*dy)||1,nx=dy/l*w,ny=-dx/l*w;ctx.beginPath();ctx.moveTo(x1+nx,y1+ny);ctx.lineTo(x2+nx,y2+ny);ctx.quadraticCurveTo(x2+nx*2,y2+ny*2,x2-nx,y2-ny);ctx.lineTo(x1-nx,y1-ny);ctx.quadraticCurveTo(x1-nx*2,y1-ny*2,x1+nx,y1+ny);ctx.closePath();ctx.fillStyle=f;ctx.fill();ctx.strokeStyle=s||f;ctx.lineWidth=1.5;ctx.stroke();}
 function dot(ctx,x,y,r,f,s){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=f;ctx.fill();ctx.strokeStyle=s||f;ctx.lineWidth=2;ctx.stroke();}
@@ -300,65 +301,266 @@ function arrw(ctx,x1,y1,x2,y2){const dx=x2-x1,dy=y2-y1,l=Math.sqrt(dx*dx+dy*dy)|
 function lbl(ctx,x,y,t,c){ctx.font='bold 11px DM Mono,monospace';ctx.textAlign='center';ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillText(t,x+1,y+1);ctx.fillStyle=c||C.move;ctx.fillText(t,x,y);}
 function tag(ctx,x,y,t,c){ctx.font='10px DM Mono,monospace';ctx.textAlign='center';const w=ctx.measureText(t).width+10;ctx.fillStyle='rgba(10,21,32,0.8)';ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x-w/2,y-11,w,15,4);else ctx.rect(x-w/2,y-11,w,15);ctx.fill();ctx.fillStyle=c||'#e0f4ff';ctx.fillText(t,x,y);}
 
-const exs=[
+var LC={
+  skin:'#F5C518',skinD:'#c89e00',
+  body:'#E63946',bodyD:'#9B1B23',
+  pants:'#1D3557',pantsD:'#0d1f33',
+  shoe:'#2C2C2C',shoeD:'#111',
+  arm:'#E63946',armD:'#9B1B23',
+  hand:'#F5C518',handD:'#c89e00',
+  floor:'#2a2a4a',floorD:'#3a3a6a'
+};
+function lrect(ctx,x,y,w,h,r,fill,stroke){
+  ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);
+  else ctx.rect(x,y,w,h);
+  ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
+}
+function lhead(ctx,cx,y,s){
+  s=s||1;
+  lrect(ctx,cx-14*s,y,28*s,26*s,5*s,LC.skin,LC.skinD);
+  lrect(ctx,cx-5*s,y-5*s,10*s,7*s,3*s,LC.skin,LC.skinD);
+  ctx.fillStyle='#111';
+  ctx.beginPath();ctx.arc(cx-6*s,y+10*s,3*s,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(cx+6*s,y+10*s,3*s,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(cx,y+17*s,4*s,0.2,Math.PI-.2);ctx.strokeStyle='#111';ctx.lineWidth=1.5*s;ctx.stroke();
+}
+function ltorso(ctx,cx,y,w,h,s){
+  s=s||1;w=w||28;h=h||30;
+  lrect(ctx,cx-w/2,y,w,h,3*s,LC.body,LC.bodyD);
+  lrect(ctx,cx-4*s,y-3*s,8*s,5*s,2*s,LC.body,LC.bodyD);
+}
+function lseg(ctx,x1,y1,x2,y2,w,fill,stroke){
+  const dx=x2-x1,dy=y2-y1,a=Math.atan2(dy,dx),l=Math.sqrt(dx*dx+dy*dy);
+  ctx.save();ctx.translate(x1,y1);ctx.rotate(a);
+  lrect(ctx,0,-w/2,l,w,w/2*0.7,fill,stroke);
+  ctx.restore();
+}
+function lshoe(ctx,x,y,dir){
+  dir=dir||1;
+  lrect(ctx,x-6+dir*2,y-4,16,8,3,LC.shoe,LC.shoeD);
+}
+function lfloor(ctx,y,W,x0,x1){
+  if(x0!==undefined&&x1!==undefined){lrect(ctx,x0,y,x1-x0,10,4,LC.floor,LC.floorD);}
+  else{lrect(ctx,10,y,W-20,10,4,LC.floor,LC.floorD);}
+}
+function lball(ctx,x,y,r){
+  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fill();
+}
+
+var exs=[
   {name:'Kolenní přitažení',desc:'Uvolnění tlaku na L5 • vleže',reps:'10×',hold:'5 s',freq:'2× denně',
-   phases:['Výchozí poloha','Přitahování kolena','Výdrž','Návrat'],phaseAt:[0,.2,.5,.8],durations:[3,4,5,3],
+   phases:['Výchozí poloha','Přitahování kolena','Výdrž','Návrat'],phaseAt:[0,.2,.5,.8],durations:[3,5,6,4],
    steps:['Lehněte na záda na rovnou podložku.','Pomalu přitahujte koleno k hrudníku oběma rukama.','Vydržte 5 sekund — cítíte protažení v zádech.','Pomalu vraťte nohu a opakujte druhou stranou.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);gnd(ctx,162,20,300);let a=0;if(t<.2)a=0;else if(t<.5)a=ease((t-.2)/.3)*108;else if(t<.8)a=108;else a=ease(1-(t-.8)/.2)*108;const ar=a*Math.PI/180,hx=210,hy=152;seg(ctx,hx-115,hy,hx+15,hy,11,C.trunk,C.trunkD);seg(ctx,hx-75,hy,hx-75,hy-58,16,C.trunk,C.trunkD);hd(ctx,hx-75,hy-74);seg(ctx,hx+15,hy,hx+60,hy,9,C.legR,C.legRD);seg(ctx,hx+60,hy,hx+78,hy+8,8,C.legR,C.legRD);const kx=hx-Math.sin(ar)*68,ky=hy-Math.cos(ar)*38-Math.sin(ar)*22;seg(ctx,hx,hy,kx,ky,10,C.legL,C.legLD);dot(ctx,kx,ky,8,C.legLD,'#4a0072');const sa=ar*.5,fx=kx-Math.sin(sa)*50,fy=ky-Math.cos(sa)*18+Math.sin(sa)*16;seg(ctx,kx,ky,fx,fy,8,C.legL,C.legLD);if(a>15){seg(ctx,hx-95,hy-14,kx-6,ky+4,6,C.arm,C.armD);seg(ctx,hx-82,hy-10,kx+3,ky+6,6,C.arm,C.armD);tag(ctx,hx-108,hy-28,'ruka',C.arm);}dot(ctx,hx,hy,10,C.trunkD,'#014361');if(a>5)arrw(ctx,hx+8,hy-20,kx+6,ky-10);tag(ctx,kx+32,ky,'koleno',C.legL);tag(ctx,hx-75,hy-92,'hlava',C.head);lbl(ctx,160,200,`koleno: ${Math.round(a)}°`,'#4fc3f7');ctx.restore();}},
-  {name:'Kočka – kráva',desc:'Mobilizace bederní páteře • ve čtyřech',reps:'12×',hold:'3 s',freq:'3× denně',
-   phases:['Neutrální záda','Kočka — záda nahoru','Přechod','Kráva — záda dolů'],phaseAt:[0,.15,.5,.7],durations:[3,5,2,5],
-   steps:['Klekněte na ruce a kolena, záda rovná.','Vydechněte a zakulaťte záda co nejvýše.','Pomalu přejděte přes neutrální polohu.','Nadechněte a prohněte záda dolů — kráva.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);let cv=0;if(t<.15)cv=0;else if(t<.45)cv=ease((t-.15)/.3)*32;else if(t<.5)cv=32*(1-(t-.45)/.05);else if(t<.7)cv=-ease((t-.5)/.2)*24;else cv=-24*(1-(t-.7)/.3);const pts=[];for(let i=0;i<=10;i++)pts.push({x:68+i*18,y:108-Math.sin(i/10*Math.PI)*cv});ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let p of pts)ctx.lineTo(p.x,p.y);ctx.strokeStyle=C.trunk;ctx.lineWidth=18;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let p of pts)ctx.lineTo(p.x,p.y);ctx.strokeStyle=C.spine;ctx.lineWidth=3;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);[[pts[2],C.legR,C.legRD],[pts[8],C.legL,C.legLD]].forEach(([p,c,cd])=>{seg(ctx,p.x,p.y,p.x-7,p.y+44,9,c,cd);dot(ctx,p.x-7,p.y+44,6,cd,'#333');seg(ctx,p.x-7,p.y+44,p.x-7,p.y+72,7,C.head,C.headD);seg(ctx,p.x,p.y,p.x+7,p.y+44,9,c,cd);dot(ctx,p.x+7,p.y+44,6,cd,'#333');seg(ctx,p.x+7,p.y+44,p.x+7,p.y+72,7,C.head,C.headD);});hd(ctx,pts[0].x-14,pts[0].y,11);const mid=pts[5];if(Math.abs(cv)>3){arrw(ctx,mid.x,mid.y+6,mid.x,mid.y+(cv>0?-32:32));tag(ctx,mid.x+42,mid.y+(cv>0?-20:24),cv>0?'kočka':'kráva',C.move);}tag(ctx,90,185,'páteř',C.spine);tag(ctx,pts[0].x-14,pts[0].y-24,'hlava',C.head);ctx.restore();}},
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    const G=178;lfloor(ctx,G,320);
+    let a=0;if(t<.2)a=0;else if(t<.5)a=ease((t-.2)/.3)*108;else if(t<.8)a=108;else a=ease(1-(t-.8)/.2)*108;
+    const ar=a*Math.PI/180,hx=205,hy=G-22;
+    lrect(ctx,hx-115,hy-7,120,16,5,LC.body,LC.bodyD);
+    lrect(ctx,hx-75,hy-58,20,52,4,LC.body,LC.bodyD);lhead(ctx,hx-65,hy-76,1);
+    lrect(ctx,hx+8,hy-7,55,16,5,LC.pants,LC.pantsD);lshoe(ctx,hx+62,hy+9,1);
+    const kx=hx-Math.sin(ar)*58,ky=hy-Math.cos(ar)*30-Math.sin(ar)*18;
+    lseg(ctx,hx,hy,kx,ky,14,LC.pants,LC.pantsD);lball(ctx,kx,ky,7);
+    const sa=ar*.5,fx=kx-Math.sin(sa)*44,fy=ky-Math.cos(sa)*14+Math.sin(sa)*12;
+    lseg(ctx,kx,ky,fx,fy,12,LC.pants,LC.pantsD);lshoe(ctx,fx,fy,1);
+    if(a>15){lseg(ctx,hx-92,hy-12,kx-5,ky+4,10,LC.arm,LC.armD);lseg(ctx,hx-78,hy-8,kx+3,ky+6,10,LC.arm,LC.armD);}
+    lball(ctx,hx,hy,9);
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(`koleno: ${Math.round(a)}°`,160,G+16);
+    ctx.restore();}},
+  {name:'Kočka \u2013 kr\xe1va',desc:'Mobilizace bedern\xed p\xe1te\u0159e \u2022 ve \u010dty\u0159ech',reps:'12\xd7',hold:'3 s',freq:'3\xd7 denn\u011b',
+   phases:['Neutr\xe1ln\xed z\xe1da','Ko\u010dka \u2014 z\xe1da nahoru','P\u0159echod','Kr\xe1va \u2014 z\xe1da dol\u016f'],phaseAt:[0,.15,.5,.7],durations:[3,6,2,6],
+   steps:['Klekn\u011bte na ruce a kolena, z\xe1da rovn\xe1.','Vydechnte a zakulaťte z\xe1da co nejv\xfd\u0161e.','Pomalu p\u0159ejd\u011bte p\u0159es neutr\xe1ln\xed polohu.','Nadechnte a prohn\u011bte z\xe1da dol\u016f \u2014 kr\xe1va.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    let cv=0;if(t<.15)cv=0;else if(t<.5)cv=ease((t-.15)/.35)*28;else if(t<.7)cv=28-ease((t-.5)/.2)*48;else cv=-20*(1-(t-.7)/.3);
+    const pts=[];for(let i=0;i<=8;i++)pts.push({x:62+i*22,y:90-Math.sin(i/8*Math.PI)*cv});
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let p of pts)ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle=LC.body;ctx.lineWidth=18;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
+    ctx.strokeStyle=LC.bodyD;ctx.lineWidth=2;ctx.stroke();
+    [[pts[2],'L'],[pts[6],'P']].forEach(([p])=>{
+      lrect(ctx,p.x-5,p.y,12,36,4,LC.pants,LC.pantsD);lball(ctx,p.x,p.y+36,6);
+      lrect(ctx,p.x+7,p.y,12,36,4,LC.arm,LC.armD);lshoe(ctx,p.x+7,p.y+44,1);
+    });
+    lhead(ctx,pts[0].x-10,pts[0].y,1);
+    const mid=pts[4];
+    if(Math.abs(cv)>3){
+      ctx.beginPath();ctx.moveTo(mid.x,mid.y+(cv>0?8:8));ctx.lineTo(mid.x,mid.y+(cv>0?-22:22));
+      ctx.strokeStyle='#81c784';ctx.lineWidth=3;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';
+    ctx.fillText(cv>3?'ko\u010dka \u2014 z\xe1da nahoru':cv<-3?'kr\xe1va \u2014 z\xe1da dol\u016f':'neutr\xe1ln\xed z\xe1da',160,180);
+    ctx.restore();}},
   {name:'Mrtvý brouk',desc:'Hluboká stabilizace páteře • vleže',reps:'8×',hold:'3 s',freq:'2× denně',
-   phases:['Výchozí poloha','Spouštění paže a nohy','Výdrž','Návrat'],phaseAt:[0,.2,.55,.78],durations:[3,4,3,3],
+   phases:['Výchozí poloha','Spouštění paže a nohy','Výdrž','Návrat'],phaseAt:[0,.2,.55,.78],durations:[3,5,4,4],
    steps:['Lehněte na záda, ruce ke stropu, kolena 90°.','Pomalu spusťte pravou paži a levou nohu.','Udržujte záda přitlačená k podložce — výdrž 3 s.','Vraťte a opakujte druhou stranou.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);gnd(ctx,155,20,300);let ext=0;if(t<.2)ext=0;else if(t<.5)ext=ease((t-.2)/.3);else if(t<.55)ext=1;else ext=ease(1-(t-.55)/.45);const cx=165,hy=143;seg(ctx,cx-88,hy,cx+52,hy,13,C.trunk,C.trunkD);seg(ctx,cx-48,hy,cx-48,hy-62,16,C.trunk,C.trunkD);hd(ctx,cx-48,hy-78);seg(ctx,cx+10,hy,cx+34,hy-34,11,C.legR,C.legRD);dot(ctx,cx+34,hy-34,8,C.legRD,'#b71c1c');seg(ctx,cx+34,hy-34,cx+34,hy-62,9,C.legR,C.legRD);tag(ctx,cx+56,hy-48,'noha P',C.legR);seg(ctx,cx-10,hy,cx-30,hy-34,11,C.legL,C.legLD);dot(ctx,cx-30,hy-34,8,C.legLD,'#4a0072');const lx=cx-30-ext*52,ly=hy-62+ext*58;seg(ctx,cx-30,hy-34,lx,ly,9,C.legL,C.legLD);tag(ctx,lx-28,ly,'noha L',C.legL);const rax=cx-58,ray=hy-28;seg(ctx,cx-58,hy-18,rax,ray,10,C.arm,C.armD);dot(ctx,rax,ray,7,C.armD,'#1b5e20');const rx=rax-ext*52,ry=ray+ext*52;seg(ctx,rax,ray,rx,ry,9,C.arm,C.armD);tag(ctx,rx-24,ry+12,'paže',C.arm);seg(ctx,cx+52,hy-18,cx+68,hy-18,9,C.arm,C.armD);dot(ctx,cx+68,hy-18,7,C.armD,'#1b5e20');seg(ctx,cx+68,hy-18,cx+68,hy-52,8,C.arm,C.armD);if(ext>.05){ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(lx,ly);ctx.strokeStyle='rgba(129,199,132,.4)';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);}tag(ctx,cx-48,hy-96,'hlava',C.head);lbl(ctx,160,198,ext>.1?'záda přitlačená k zemi':'výchozí poloha','#4fc3f7');ctx.restore();}},
+   phases:['Výchozí poloha','Spouštění paže a nohy','Výdrž','Návrat'],phaseAt:[0,.2,.55,.78],durations:[3,5,4,4],
+   steps:['Lehněte na záda, ruce ke stropu, kolena 90°.','Pomalu spusťte pravou paži a levou nohu.','Udržujte záda přitlačená k podložce — výdrž 3 s.','Vraťte a opakujte druhou stranou.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    const G=178;lfloor(ctx,G,320);
+    let ext=0;if(t<.2)ext=0;else if(t<.55)ext=ease((t-.2)/.35);else if(t<.78)ext=1;else ext=ease(1-(t-.78)/.22);
+    const cx=165,hy=G-24;
+    lrect(ctx,cx-88,hy-7,142,16,5,LC.body,LC.bodyD);
+    lrect(ctx,cx-52,hy-58,20,52,4,LC.body,LC.bodyD);lhead(ctx,cx-42,hy-74,1);
+    lseg(ctx,cx+10,hy,cx+34,hy-32,14,LC.pants,LC.pantsD);lball(ctx,cx+34,hy-32,7);
+    lseg(ctx,cx+34,hy-32,cx+34,hy-58,12,LC.pants,LC.pantsD);
+    lseg(ctx,cx-8,hy,cx-30,hy-32,14,LC.pants,LC.pantsD);lball(ctx,cx-30,hy-32,7);
+    const lx=cx-30-ext*48,ly=hy-56+ext*50;lseg(ctx,cx-30,hy-32,lx,ly,12,LC.pants,LC.pantsD);
+    lseg(ctx,cx-56,hy-16,cx-56,hy-46,12,LC.arm,LC.armD);lball(ctx,cx-56,hy-46,6);
+    const rx=cx-56-ext*48,ry=hy-46+ext*48;lseg(ctx,cx-56,hy-46,rx,ry,10,LC.hand,LC.handD);
+    lseg(ctx,cx+52,hy-16,cx+66,hy-16,12,LC.arm,LC.armD);lball(ctx,cx+66,hy-16,6);
+    lseg(ctx,cx+66,hy-16,cx+66,hy-48,10,LC.hand,LC.handD);
+    if(ext>.05){ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(lx,ly);ctx.strokeStyle='rgba(129,199,132,.4)';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);}
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(ext>.1?'záda přitlačená k zemi':'výchozí poloha',160,G+16);
+    ctx.restore();}},
   {name:'Výpad s rotací',desc:'Posílení hýžďových svalů • stoj',reps:'6× každá strana',hold:'2 s',freq:'1× denně',
-   phases:['Výchozí stoj','Výpad vpřed','Rotace trupu','Návrat'],phaseAt:[0,.22,.5,.78],durations:[3,4,2,3],
+   phases:['Výchozí stoj','Výpad vpřed','Rotace trupu','Návrat'],phaseAt:[0,.22,.5,.78],durations:[3,5,3,4],
    steps:['Stůjte rovně, nohy na šíři boků.','Udělejte krok vpřed do výpadu.','Otočte trup k přední noze — výdrž 2 s.','Vraťte se do stoje a střídejte strany.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);gnd(ctx,188,20,300);let step=0,rot=0;if(t<.22)step=0;else if(t<.45)step=ease((t-.22)/.23);else if(t<.52){step=1;rot=ease((t-.45)/.07);}else if(t<.78){step=1;rot=1-ease((t-.52)/.26);}else step=ease(1-(t-.78)/.22);const hx=148,hy=178-step*52,fkx=hx+step*72,fky=178-step*18,bkx=hx-step*38,bky=178-step*8;seg(ctx,hx,hy,bkx,bky,11,C.legR,C.legRD);dot(ctx,bkx,bky,8,C.legRD,'#b71c1c');seg(ctx,bkx,bky,hx-step*20,178,9,C.legR,C.legRD);tag(ctx,bkx-28,bky,'noha P',C.legR);seg(ctx,hx,hy,fkx,fky,11,C.legL,C.legLD);dot(ctx,fkx,fky,8,C.legLD,'#4a0072');seg(ctx,fkx,fky,hx+step*88,178,9,C.legL,C.legLD);tag(ctx,fkx+28,fky,'noha L',C.legL);dot(ctx,hx,hy,11,C.trunkD,'#014361');const ra=rot*22*Math.PI/180,tx=hx+Math.sin(ra)*55,ty=hy-Math.cos(ra)*55;spL(ctx,hx,hy,tx,ty);hd(ctx,tx,ty-16);seg(ctx,tx,ty,tx-Math.cos(ra)*22,ty+Math.sin(ra)*20+18,9,C.arm,C.armD);if(rot>.15){ctx.beginPath();ctx.arc(hx,hy,36,-Math.PI/2,-Math.PI/2+ra,false);ctx.strokeStyle=C.move;ctx.lineWidth=2;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);tag(ctx,hx+56,hy-30,`rotace ${Math.round(rot*22)}°`,C.move);}tag(ctx,tx,ty-34,'hlava',C.head);lbl(ctx,160,202,step<.1?'výchozí stoj':rot>.2?'rotace trupu':'výpad vpřed','#4fc3f7');ctx.restore();}},
+   phases:['Výchozí stoj','Výpad vpřed','Rotace trupu','Návrat'],phaseAt:[0,.22,.5,.78],durations:[3,5,3,4],
+   steps:['Stůjte rovně, nohy na šíři boků.','Udělejte krok vpřed do výpadu.','Otočte trup k přední noze — výdrž 2 s.','Vraťte se do stoje a střídejte strany.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    const G=178;lfloor(ctx,G,320);
+    let step=0,rot=0;
+    if(t<.22)step=0;else if(t<.5)step=ease((t-.22)/.28);
+    else if(t<.56){step=1;rot=ease((t-.5)/.06);}
+    else if(t<.78){step=1;rot=1-ease((t-.56)/.22);}
+    else{step=ease(1-(t-.78)/.22);rot=0;}
+    const hx=148,hipY=G-18-step*46,fkx=hx+step*62,fky=G-18-step*14,bkx=hx-step*28,bky=G-18-step*7;
+    lseg(ctx,hx,hipY,fkx,fky,14,LC.pants,LC.pantsD);lball(ctx,fkx,fky,7);lseg(ctx,fkx,fky,hx+step*76,G,12,LC.pants,LC.pantsD);lshoe(ctx,hx+step*76,G,1);
+    lseg(ctx,hx,hipY,bkx,bky,14,LC.pants,LC.pantsD);lball(ctx,bkx,bky,7);lseg(ctx,bkx,bky,hx-step*13,G,12,LC.pants,LC.pantsD);lshoe(ctx,hx-step*13,G,-1);
+    lball(ctx,hx,hipY,9);
+    const ra=rot*22*Math.PI/180,tx=hx+Math.sin(ra)*48,ty=hipY-Math.cos(ra)*48;
+    lrect(ctx,Math.min(hx,tx)-13,Math.min(hipY,ty)-6,Math.abs(tx-hx)+26,Math.abs(ty-hipY)+13,4,LC.body,LC.bodyD);
+    lseg(ctx,tx,ty,tx-Math.cos(ra)*18,ty+Math.sin(ra)*16+14,10,LC.arm,LC.armD);
+    if(rot>.15){ctx.beginPath();ctx.arc(hx,hipY,30,-Math.PI/2,-Math.PI/2+ra,false);ctx.strokeStyle='#81c784';ctx.lineWidth=2.5;ctx.setLineDash([3,4]);ctx.stroke();ctx.setLineDash([]);}
+    lhead(ctx,tx,ty-18,1);
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(step<.1?'výchozí stoj':rot>.2?'rotace trupu':'výpad vpřed',160,G+16);
+    ctx.restore();}},
   {name:'Protažení hruška',desc:'Uvolnění piriformis • vleže',reps:'3× každá strana',hold:'30 s',freq:'2× denně',
    phases:['Výchozí poloha','Překřížení nohy','Přitažení','Výdrž — protažení'],phaseAt:[0,.2,.45,.65],durations:[3,4,4,30],
    steps:['Lehněte na záda, obě kolena ohnutá.','Pravý kotník položte na levé koleno.','Oběma rukama přitahujte levé stehno k hrudníku.','Vydržte 30 sekund — cítíte protažení v hýždi.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);gnd(ctx,162,20,300);let cross=0,pull=0;if(t<.2)cross=0;else if(t<.4)cross=ease((t-.2)/.2);else cross=1;if(t<.45)pull=0;else if(t<.65)pull=ease((t-.45)/.2);else if(t<.8)pull=1;else pull=ease(1-(t-.8)/.2);const hx=210,hy=152;seg(ctx,hx-118,hy,hx+18,hy,11,C.trunk,C.trunkD);seg(ctx,hx-78,hy,hx-78,hy-58,16,C.trunk,C.trunkD);hd(ctx,hx-78,hy-74);const lky=hy-34*pull,lkx=hx-10;seg(ctx,hx-20,hy,lkx,lky,10,C.legL,C.legLD);dot(ctx,lkx,lky,8,C.legLD,'#4a0072');seg(ctx,lkx,lky,lkx+10,lky+38*(1-pull*.6),8,C.legL,C.legLD);tag(ctx,lkx-28,lky,'noha L',C.legL);const rkx=hx+28-pull*10,rky=hy-14-pull*20;seg(ctx,hx+10,hy,rkx,rky,10,C.legR,C.legRD);dot(ctx,rkx,rky,8,C.legRD,'#b71c1c');const akx=rkx-38+cross*(-14);if(cross>.1){seg(ctx,rkx,rky,akx,lky+5,8,C.legR,C.legRD);dot(ctx,akx,lky+5,6,C.move,C.moveD);tag(ctx,akx+30,lky+18,'překřížení',C.move);}else{seg(ctx,rkx,rky,rkx+14,rky+36,8,C.legR,C.legRD);}if(pull>.1){seg(ctx,hx-98,hy-16,lkx-5,lky+5,6,C.arm,C.armD);seg(ctx,hx-86,hy-11,rkx-5,rky+5,6,C.arm,C.armD);tag(ctx,hx-108,hy-28,'ruka',C.arm);}dot(ctx,hx-20,hy,10,C.trunkD,'#014361');tag(ctx,hx-78,hy-92,'hlava',C.head);lbl(ctx,160,200,pull>.3?'výdrž — protažení hruška':cross>.3?'překřížení nohy':'výchozí poloha','#4fc3f7');ctx.restore();}},
+   phases:['Výchozí poloha','Překřížení nohy','Přitažení','Výdrž — protažení'],phaseAt:[0,.2,.45,.65],durations:[3,4,4,30],
+   steps:['Lehněte na záda, obě kolena ohnutá.','Pravý kotník položte na levé koleno.','Oběma rukama přitahujte levé stehno k hrudníku.','Vydržte 30 sekund — cítíte protažení v hýždi.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    const G=178;lfloor(ctx,G,320);
+    let cross=0,pull=0;if(t<.2)cross=0;else if(t<.45)cross=ease((t-.2)/.25);else cross=1;if(t<.45)pull=0;else if(t<.65)pull=ease((t-.45)/.2);else pull=1;
+    const hx=208,hy=G-22;
+    lrect(ctx,hx-115,hy-7,128,16,5,LC.body,LC.bodyD);lrect(ctx,hx-75,hy-58,20,52,4,LC.body,LC.bodyD);lhead(ctx,hx-65,hy-74,1);
+    const lky=hy-30*pull,lkx=hx-12;lseg(ctx,hx-18,hy,lkx,lky,14,LC.pants,LC.pantsD);lball(ctx,lkx,lky,7);lseg(ctx,lkx,lky,lkx+10,lky+32*(1-pull*.6),12,LC.pants,LC.pantsD);
+    const rkx=hx+24-pull*9,rky=hy-10-pull*16;lseg(ctx,hx+10,hy,rkx,rky,14,LC.pants,LC.pantsD);lball(ctx,rkx,rky,7);
+    if(cross>.1){lseg(ctx,rkx,rky,rkx-34+cross*(-10),lky+4,12,LC.pants,LC.pantsD);lball(ctx,rkx-34+cross*(-10),lky+4,6);}
+    else lseg(ctx,rkx,rky,rkx+12,rky+30,12,LC.pants,LC.pantsD);
+    if(pull>.1){lseg(ctx,hx-95,hy-14,lkx-4,lky+4,10,LC.arm,LC.armD);lseg(ctx,hx-83,hy-10,rkx-4,rky+4,10,LC.arm,LC.armD);}
+    lball(ctx,hx-18,hy,9);
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(pull>.3?'výdrž — protažení hruška':cross>.3?'překřížení nohy':'výchozí poloha',160,G+16);
+    ctx.restore();}},
   {name:'Ptačí pes',desc:'Stabilizace páteře L5 • ve čtyřech',reps:'8×',hold:'5 s',freq:'2× denně',
-   phases:['Výchozí poloha','Natahování','Výdrž — rovnováha','Návrat'],phaseAt:[0,.2,.5,.8],durations:[3,4,5,3],
+   phases:['Výchozí poloha','Natahování','Výdrž — rovnováha','Návrat'],phaseAt:[0,.2,.5,.8],durations:[3,5,6,4],
    steps:['Klekněte na ruce a kolena, záda rovná.','Natáhněte pravou paži a levou nohu do roviny zad.','Vydržte 5 sekund — záda rovná, nezakláníte se.','Vraťte a opakujte druhou stranou.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);let ext=0;if(t<.2)ext=0;else if(t<.5)ext=ease((t-.2)/.3);else if(t<.8)ext=1;else ext=ease(1-(t-.8)/.2);const pts=[];for(let i=0;i<=8;i++)pts.push({x:70+i*22,y:102});ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let p of pts)ctx.lineTo(p.x,p.y);ctx.strokeStyle=C.trunk;ctx.lineWidth=18;ctx.lineCap='round';ctx.stroke();ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let p of pts)ctx.lineTo(p.x,p.y);ctx.strokeStyle=C.spine;ctx.lineWidth=3;ctx.setLineDash([5,4]);ctx.stroke();ctx.setLineDash([]);[[pts[2],C.legR,C.legRD],[pts[6],C.legL,C.legLD]].forEach(([p,c,cd])=>{seg(ctx,p.x,p.y,p.x-5,p.y+44,9,c,cd);dot(ctx,p.x-5,p.y+44,6,cd,'#333');seg(ctx,p.x-5,p.y+44,p.x-5,p.y+72,7,C.head,C.headD);seg(ctx,p.x,p.y,p.x+5,p.y+44,9,c,cd);dot(ctx,p.x+5,p.y+44,6,cd,'#333');seg(ctx,p.x+5,p.y+44,p.x+5,p.y+72,7,C.head,C.headD);});hd(ctx,pts[0].x-14,pts[0].y,11);const tp=pts[pts.length-1];const lex=tp.x+ext*55,ley=tp.y;seg(ctx,tp.x,tp.y,lex,ley,10,C.legL,C.legLD);dot(ctx,lex,ley,7,ext>.5?C.move:C.legLD,'#333');tag(ctx,lex+24,ley,'noha L',C.legL);const aex=pts[0].x-14-ext*52,aey=pts[0].y;seg(ctx,pts[0].x-14,pts[0].y,aex,aey,10,C.arm,C.armD);dot(ctx,aex,aey,7,ext>.5?C.move:C.armD,'#333');tag(ctx,aex-24,aey,'paže',C.arm);if(ext>.3){ctx.beginPath();ctx.moveTo(aex,aey);ctx.lineTo(lex,ley);ctx.strokeStyle='rgba(129,199,132,.4)';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);lbl(ctx,160,195,'záda rovná — rovnováha',C.move);}else lbl(ctx,160,195,'výchozí poloha','#4fc3f7');tag(ctx,pts[0].x-14,pts[0].y-26,'hlava',C.head);ctx.restore();}},
+   phases:['Výchozí poloha','Natahování','Výdrž — rovnováha','Návrat'],phaseAt:[0,.2,.5,.8],durations:[3,5,6,4],
+   steps:['Klekněte na ruce a kolena, záda rovná.','Natáhněte pravou paži a levou nohu do roviny zad.','Vydržte 5 sekund — záda rovná, nezakláníte se.','Vraťte a opakujte druhou stranou.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    let ext=0;if(t<.2)ext=0;else if(t<.5)ext=ease((t-.2)/.3);else if(t<.8)ext=1;else ext=ease(1-(t-.8)/.2);
+    const pts=[];for(let i=0;i<=7;i++)pts.push({x:66+i*24,y:85});
+    ctx.beginPath();ctx.moveTo(pts[0].x,pts[0].y);for(let p of pts)ctx.lineTo(p.x,p.y);ctx.strokeStyle=LC.body;ctx.lineWidth=18;ctx.lineCap='round';ctx.stroke();ctx.strokeStyle=LC.bodyD;ctx.lineWidth=2;ctx.stroke();
+    [[pts[2],'L'],[pts[5],'P']].forEach(([p])=>{
+      lrect(ctx,p.x-6,p.y,14,36,4,LC.pants,LC.pantsD);lball(ctx,p.x,p.y+36,6);
+      lrect(ctx,p.x+8,p.y,14,36,4,LC.arm,LC.armD);lshoe(ctx,p.x+8,p.y+44,1);
+    });
+    lhead(ctx,pts[0].x-10,pts[0].y,1);
+    const tp=pts[pts.length-1];
+    const lex=tp.x+ext*50,ley=tp.y;lseg(ctx,tp.x,tp.y,lex,ley,12,LC.pants,LC.pantsD);
+    if(ext>.5)lshoe(ctx,lex,ley,1);
+    const aex=pts[0].x-10-ext*48,aey=pts[0].y;lseg(ctx,pts[0].x-10,pts[0].y,aex,aey,10,LC.arm,LC.armD);
+    if(ext>.3){ctx.beginPath();ctx.moveTo(aex,aey);ctx.lineTo(lex,ley);ctx.strokeStyle='rgba(129,199,132,.4)';ctx.lineWidth=2;ctx.setLineDash([4,4]);ctx.stroke();ctx.setLineDash([]);}
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(ext>.3?'záda rovná — rovnováha':'výchozí poloha',160,178);
+    ctx.restore();}},
   {name:'Most — pánev',desc:'Posílení hýžďových svalů • vleže',reps:'12×',hold:'3 s',freq:'2× denně',
-   phases:['Výchozí poloha','Zvedání pánve','Výdrž','Spouštění'],phaseAt:[0,.2,.55,.75],durations:[3,4,3,4],
+   phases:['Výchozí poloha','Zvedání pánve','Výdrž','Spouštění'],phaseAt:[0,.2,.55,.75],durations:[3,5,4,4],
    steps:['Lehněte na záda, kolena ohnutá, chodidla na zemi.','Pomalu zvedejte pánev — stáhněte hýždi.','Vydržte 3 s — tělo v rovné linii od ramen ke kolenům.','Pomalu spusťte pánev zpět na zem.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);gnd(ctx,162,20,300);let lift=0;if(t<.2)lift=0;else if(t<.55)lift=ease((t-.2)/.35);else if(t<.75)lift=1;else lift=ease(1-(t-.75)/.25);const hy=152,rise=lift*52,shX=80,shY=hy,hipX=165,hipY=hy-rise,knX=222,knY=hy-rise*.12;seg(ctx,shX,shY,shX+18,shY,10,C.trunk,C.trunkD);spL(ctx,shX+10,shY,hipX,hipY);seg(ctx,hipX,hipY,knX,knY,11,C.legR,C.legRD);dot(ctx,knX,knY,8,C.legRD,'#b71c1c');seg(ctx,knX,knY,242,hy,9,C.legR,C.legRD);seg(ctx,hipX,hipY,knX-10,knY+2,11,C.legL,C.legLD);dot(ctx,knX-10,knY+2,8,C.legLD,'#4a0072');seg(ctx,knX-10,knY+2,230,hy,9,C.legL,C.legLD);dot(ctx,hipX,hipY,11,lift>.1?C.move:C.trunkD,'#014361');hd(ctx,shX-4,shY-20);seg(ctx,shX,shY-5,shX+34,shY+8,8,C.arm,C.armD);if(lift>.05){arrw(ctx,hipX,hipY+10,hipX,hipY-22);tag(ctx,hipX+34,hipY,'pánev',C.move);}tag(ctx,knX+14,knY+16,'koleno P',C.legR);tag(ctx,shX-4,shY-38,'hlava',C.head);tag(ctx,118,shY-16,'páteř',C.spine);lbl(ctx,160,200,lift>.7?'výdrž — rovná linie':lift>.05?`zdvih: ${Math.round(lift*52)} mm`:'výchozí poloha','#4fc3f7');ctx.restore();}},
+   phases:['Výchozí poloha','Zvedání pánve','Výdrž','Spouštění'],phaseAt:[0,.2,.55,.75],durations:[3,5,4,4],
+   steps:['Lehněte na záda, kolena ohnutá, chodidla na zemi.','Pomalu zvedejte pánev — stáhněte hýždi.','Vydržte 3 s — tělo v rovné linii od ramen ke kolenům.','Pomalu spusťte pánev zpět na zem.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    const G=178;lfloor(ctx,G,320);
+    let lift=0;if(t<.2)lift=0;else if(t<.55)lift=ease((t-.2)/.35);else if(t<.75)lift=1;else lift=ease(1-(t-.75)/.25);
+    const rise=lift*44,shX=75,shY=G-24,hipX=160,hipY=G-24-rise,knX=218,knY=G-24-rise*.1;
+    lrect(ctx,shX,shY-7,24,16,4,LC.body,LC.bodyD);
+    lseg(ctx,shX+12,shY,hipX,hipY,16,LC.body,LC.bodyD);lball(ctx,hipX,hipY,10);
+    lseg(ctx,hipX,hipY,knX,knY,14,LC.pants,LC.pantsD);lball(ctx,knX,knY,7);lseg(ctx,knX,knY,235,G,12,LC.pants,LC.pantsD);lshoe(ctx,235,G,1);
+    lseg(ctx,hipX,hipY,knX-12,knY+2,14,LC.pants,LC.pantsD);lball(ctx,knX-12,knY+2,7);lseg(ctx,knX-12,knY+2,223,G,12,LC.pants,LC.pantsD);lshoe(ctx,223,G,-1);
+    lhead(ctx,shX+10,shY-22,1);lseg(ctx,shX+8,shY-4,shX+32,shY+8,10,LC.arm,LC.armD);
+    if(lift>.05){ctx.beginPath();ctx.moveTo(hipX,hipY+8);ctx.lineTo(hipX,hipY-14);ctx.strokeStyle='#81c784';ctx.lineWidth=3;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);}
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(lift>.7?'výdrž — rovná linie':lift>.05?`zdvih: ${Math.round(rise)} mm`:'výchozí poloha',160,G+16);
+    ctx.restore();}},
   {name:'Úklon v sedě',desc:'Protažení bočních svalů páteře',reps:'5× každá strana',hold:'20 s',freq:'2× denně',
    phases:['Vzpřímený sed','Úklon vpravo','Výdrž','Návrat'],phaseAt:[0,.2,.45,.75],durations:[3,4,20,4],
    steps:['Sedněte rovně na kraj židle, nohy na zemi.','Pomalu se ukloňte vpravo, levá ruka míří ke stropu.','Vydržte 20 sekund — cítíte protažení vlevo v zádech.','Vraťte se a opakujte na druhou stranu.'],
-   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);gnd(ctx,178,75,245);let lean=0;if(t<.2)lean=0;else if(t<.45)lean=ease((t-.2)/.25)*28;else if(t<.75)lean=28;else lean=ease(1-(t-.75)/.25)*28;const sx=160,sy=168,lr=lean*Math.PI/180,hipY=sy-10;seg(ctx,sx-32,hipY,sx+32,hipY,10,C.trunk,C.trunkD);seg(ctx,sx-32,hipY,sx-32,sy+10,10,C.legL,C.legLD);dot(ctx,sx-32,sy+10,7,C.legLD,'#4a0072');seg(ctx,sx-32,sy+10,sx-32,sy+34,9,C.legL,C.legLD);seg(ctx,sx+32,hipY,sx+32,sy+10,10,C.legR,C.legRD);dot(ctx,sx+32,sy+10,7,C.legRD,'#b71c1c');seg(ctx,sx+32,sy+10,sx+32,sy+34,9,C.legR,C.legRD);tag(ctx,sx-52,sy+10,'noha L',C.legL);tag(ctx,sx+52,sy+10,'noha P',C.legR);const tx=sx+Math.sin(lr)*55,ty=hipY-Math.cos(lr)*55;spL(ctx,sx,hipY,tx,ty);hd(ctx,tx,ty-16);const lax=tx-Math.sin(lr+.5)*50,lay=ty-Math.cos(lr+.5)*42;seg(ctx,tx,ty,tx-Math.cos(lr)*22,ty+Math.sin(lr)*20+18,9,C.arm,C.armD);seg(ctx,tx,ty,lax,lay,9,C.arm,C.armD);dot(ctx,lax,lay,6,C.move,C.moveD);tag(ctx,lax-4,lay-18,'ruka nahoru',C.arm);if(lean>5){arrw(ctx,sx-58,hipY-18,sx-58,hipY-52);tag(ctx,sx-82,hipY-36,`${Math.round(lean)}°`,C.move);}tag(ctx,tx,ty-34,'hlava',C.head);lbl(ctx,160,202,lean>20?'výdrž — protažení boku':lean>2?'úklon vpravo':'vzpřímený sed','#4fc3f7');ctx.restore();}}
+   phases:['Vzpřímený sed','Úklon vpravo','Výdrž','Návrat'],phaseAt:[0,.2,.45,.75],durations:[3,4,20,4],
+   steps:['Sedněte rovně na kraj židle, nohy na zemi.','Pomalu se ukloňte vpravo, levá ruka míří ke stropu.','Vydržte 20 sekund — cítíte protažení vlevo v zádech.','Vraťte se a opakujte na druhou stranu.'],
+   draw(ctx,t,W,H){ctx.clearRect(0,0,W,H);const s=W/320;ctx.save();ctx.scale(s,s);
+    const G=178;lfloor(ctx,G,320,80,240);
+    let lean=0;if(t<.2)lean=0;else if(t<.45)lean=ease((t-.2)/.25)*28;else if(t<.75)lean=28;else lean=ease(1-(t-.75)/.25)*28;
+    const sx=160,hipY=G-16,lr=lean*Math.PI/180;
+    lseg(ctx,sx-26,hipY,sx-26,G,14,LC.pants,LC.pantsD);lball(ctx,sx-26,hipY,7);lshoe(ctx,sx-26,G,-1);
+    lseg(ctx,sx+26,hipY,sx+26,G,14,LC.pants,LC.pantsD);lball(ctx,sx+26,hipY,7);lshoe(ctx,sx+26,G,1);
+    const tx=sx+Math.sin(lr)*50,ty=hipY-Math.cos(lr)*50;
+    lrect(ctx,Math.min(sx,tx)-13,Math.min(hipY,ty)-6,Math.abs(tx-sx)+26,Math.abs(ty-hipY)+13,4,LC.body,LC.bodyD);
+    const lax=tx-Math.sin(lr+.5)*44,lay=ty-Math.cos(lr+.5)*38;
+    lseg(ctx,tx,ty,lax,lay,10,LC.arm,LC.armD);lball(ctx,lax,lay,5);
+    lseg(ctx,tx,ty,tx-Math.cos(lr)*18,ty+Math.sin(lr)*16+14,10,LC.arm,LC.armD);
+    lhead(ctx,tx,ty-18,1);
+    if(lean>5){ctx.beginPath();ctx.moveTo(sx-52,hipY-16);ctx.lineTo(sx-52,hipY-44);ctx.strokeStyle='#81c784';ctx.lineWidth=3;ctx.setLineDash([3,3]);ctx.stroke();ctx.setLineDash([]);}
+    ctx.font='bold 11px monospace';ctx.fillStyle='#4fc3f7';ctx.textAlign='center';ctx.fillText(lean>20?`výdrž — ${Math.round(lean)}°`:lean>2?'úklon vpravo':'vzpřímený sed',160,G+16);
+    ctx.restore();}
+  }
 ];
 
-let curEx=0,curPhase=0,playing=false,rafId=null,voiceOn=false,todayIds=[];
-const synth=window.speechSynthesis;
-let voiceCZ=null;
+var curEx=0,curPhase=0,playing=false,rafId=null,voiceOn=false,todayIds=[],curRep=1,wakeLock=null;
+var currentApp='l5';
+var synth=window.speechSynthesis;
+var voiceCZ=null;
 function loadV(){const vv=synth.getVoices();voiceCZ=vv.find(v=>v.lang.startsWith('cs'))||vv.find(v=>v.lang.startsWith('sk'))||null;}
-loadV();if(speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=loadV;
+loadV();if(window.speechSynthesis&&speechSynthesis.onvoiceschanged!==undefined)speechSynthesis.onvoiceschanged=loadV;
 
 function speak(txt,cb){if(!voiceOn||!txt){if(cb)setTimeout(cb,100);return;}synth.cancel();const u=new SpeechSynthesisUtterance(txt);if(voiceCZ)u.voice=voiceCZ;u.lang=voiceCZ?voiceCZ.lang:'cs-CZ';u.rate=.82;u.onend=()=>{if(cb)cb();};u.onerror=()=>{if(cb)cb();};synth.speak(u);}
 
-function resizeCanvas(){const cv=document.getElementById('cv'),w=cv.parentElement.clientWidth-24,h=Math.min(w*.65,260);cv.style.width=w+'px';cv.style.height=h+'px';cv.width=w;cv.height=h;}
-function getPhaseT(ex,ph,lt){const s=ex.phaseAt[ph],e=ph+1<ex.phaseAt.length?ex.phaseAt[ph+1]:1;return s+(e-s)*lt;}
+function resizeCanvas(){const cv=document.getElementById('cv'),w=cv.parentElement.clientWidth-24,h=Math.round(w*200/320);cv.style.width=w+'px';cv.style.height=h+'px';cv.width=w;cv.height=h;}
+function getPhaseT(ex,ph,lt){if(!ex.phaseAt)return lt;const s=ex.phaseAt[ph],e=ph+1<ex.phaseAt.length?ex.phaseAt[ph+1]:1;return s+(e-s)*lt;}
 function drawAt(ph,lt){
   const ex=exs[curEx],cv=document.getElementById('cv');
+  if(!cv||!cv.width||!cv.height)return;
   ex.draw(cv.getContext('2d'),getPhaseT(ex,ph,lt),cv.width,cv.height);
-  document.getElementById('pill').textContent=ex.phases[ph];
-  document.getElementById('prog').style.width=((ph+lt)/ex.phases.length*100)+'%';
-  document.getElementById('steps').innerHTML=ex.steps.map((s,i)=>`<div class="sc${i===ph?' on':''}"><div class="sn">${i+1}</div><div class="stxt">${s}</div></div>`).join('');
+  const pill=document.getElementById('pill');if(pill)pill.textContent=ex.phases[ph];
+  const prog=document.getElementById('prog');if(prog)prog.style.width=((ph+lt)/ex.phases.length*100)+'%';
+  const steps=document.getElementById('steps');if(steps)steps.innerHTML=ex.steps.map((s,i)=>`<div class="sc${i===ph?' on':''}"><div class="sn">${i+1}</div><div class="stxt">${s}</div></div>`).join('');
 }
+
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator))return;
+  try{wakeLock=await navigator.wakeLock.request('screen');}catch(e){}
+}
+function releaseWakeLock(){
+  if(wakeLock){try{wakeLock.release();}catch(e){}wakeLock=null;}
+}
+// Znovu získej wake lock po návratu do aplikace
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&(playing||fitPlaying))requestWakeLock();
+});
+
+function haptic(type){
+  if(!navigator.vibrate)return;
+  if(type==='phase')navigator.vibrate(30);
+  else if(type==='done')navigator.vibrate([50,30,50]);
+  else if(type==='rep')navigator.vibrate(60);
+}
+function updateL5RepUI(){const rc=document.getElementById('l5-rep-count');if(rc)rc.textContent=`${curRep}. opakování`;}
 function runPhase(ph){
   if(!playing)return;curPhase=ph;
   const ex=exs[curEx];drawAt(ph,0);
   speak(ex.steps[ph],()=>{
     if(!playing)return;
     const dur=ex.durations[ph]*1000;
-    animPhase(ph,0,null,dur,()=>{const n=ph+1;if(n<ex.phases.length)runPhase(n);else setTimeout(()=>{if(playing){curPhase=0;runPhase(0);}},600);});
+    animPhase(ph,0,null,dur,()=>{haptic('phase');const n=ph+1;if(n<ex.phases.length)runPhase(n);else{haptic('rep');setTimeout(()=>{if(playing){curPhase=0;curRep++;updateL5RepUI();runPhase(0);}},600);}});
   });
 }
 function animPhase(ph,st,lts,dur,cb){
@@ -367,10 +569,10 @@ function animPhase(ph,st,lts,dur,cb){
   if(lt<1)rafId=requestAnimationFrame(()=>animPhase(ph,lt,now,dur,cb));else if(cb)cb();
 }
 function togglePlay(){
-  if(playing){playing=false;if(rafId)cancelAnimationFrame(rafId);document.getElementById('btnP').textContent='Přehrát';synth.cancel();}
-  else{playing=true;document.getElementById('btnP').textContent='Pauza';runPhase(curPhase);}
+  if(playing){playing=false;if(rafId)cancelAnimationFrame(rafId);document.getElementById('btnP').textContent='Přehrát';synth.cancel();releaseWakeLock();}
+  else{playing=true;document.getElementById('btnP').textContent='Pauza';requestWakeLock();runPhase(curPhase);}
 }
-function resetEx(){playing=false;if(rafId)cancelAnimationFrame(rafId);synth.cancel();curPhase=0;document.getElementById('btnP').textContent='Přehrát';drawAt(0,0);}
+function resetEx(){playing=false;if(rafId)cancelAnimationFrame(rafId);synth.cancel();curPhase=0;curRep=1;updateL5RepUI();document.getElementById('btnP').textContent='Přehrát';drawAt(0,0);}
 function toggleVoice(){
   voiceOn=!voiceOn;
   const vbtn=document.getElementById('vbtn');
@@ -384,7 +586,7 @@ function toggleVoice(){
   if(!voiceOn)synth.cancel();
 }
 
-function markDone(){
+function markDone(){haptic('done');
   const t=todayStr();if(!db.exDone[t])db.exDone[t]={};db.exDone[t][curEx]=true;saveDB();
   const allDone=todayIds.every(id=>db.exDone[t]&&db.exDone[t][id]);
   if(allDone){db.done[t]=true;saveDB();}
@@ -396,7 +598,7 @@ function markDone(){
 }
 function goNext(){const idx=todayIds.indexOf(curEx);if(idx+1<todayIds.length)switchEx(todayIds[idx+1]);}
 
-function switchEx(i){if(i===curEx)return;playing=false;if(rafId)cancelAnimationFrame(rafId);synth.cancel();curEx=i;curPhase=0;document.getElementById('btnP').textContent='Přehrát';document.getElementById('btn-next').style.display='none';renderEx();}
+function switchEx(i){if(i===curEx)return;playing=false;if(rafId)cancelAnimationFrame(rafId);synth.cancel();curEx=i;curPhase=0;curRep=1;updateL5RepUI();document.getElementById('btnP').textContent='Přehrát';document.getElementById('btn-next').style.display='none';renderEx();}
 
 function renderExTabs(){
   const t=todayStr();
@@ -417,13 +619,14 @@ function showScreen(name){
   document.getElementById('screen-'+name).classList.add('on');
   document.querySelectorAll('#subnav-l5 .nav-tab').forEach(t=>t.classList.remove('on'));
   const idx={cal:0,ex:1,stats:2};
-  document.querySelectorAll('#subnav-l5 .nav-tab')[idx[name]].classList.add('on');
+  const tabEl=document.querySelectorAll('#subnav-l5 .nav-tab')[idx[name]];
+  if(tabEl)tabEl.classList.add('on');
   if(name==='stats')renderStats();
   if(name==='ex'){resizeCanvas();drawAt(curPhase,0);}
 }
 
-let calY=new Date().getFullYear(),calM=new Date().getMonth();
-const MONTHS=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+var calY=new Date().getFullYear(),calM=new Date().getMonth();
+var MONTHS=['Leden','Únor','Březen','Duben','Květen','Červen','Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
 function calPrev(){calM--;if(calM<0){calM=11;calY--;}renderCal();}
 function calNext(){calM++;if(calM>11){calM=0;calY++;}renderCal();}
 function renderCal(){
@@ -487,9 +690,9 @@ function renderStats(){
     sd.innerHTML+=`<div class="sd${db.done[ds]?' done':''}${i===0?' today':''}">${d.getDate()}</div>`;}
 }
 
-let popupDateStr=null;
-const CZ_DAYS=['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
-const CZ_MONTHS=['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
+var popupDateStr=null;
+var CZ_DAYS=['Neděle','Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota'];
+var CZ_MONTHS=['ledna','února','března','dubna','května','června','července','srpna','září','října','listopadu','prosince'];
 function openDayPopup(ds){
   popupDateStr=ds;
   const d=new Date(ds+'T00:00:00');
@@ -531,12 +734,19 @@ function startFromPopup(){
   startWorkout();
 }
 
-loadDB();renderTodayCard();renderCal();renderPhaseCards();resizeCanvas();renderEx();
-window.addEventListener('resize',()=>{resizeCanvas();drawAt(curPhase,0);});
+try{loadDB();}catch(e){console.error('loadDB:',e);}
+try{renderTodayCard();}catch(e){console.error('renderTodayCard:',e);}
+try{renderCal();}catch(e){console.error('renderCal:',e);}
+try{renderPhaseCards();}catch(e){console.error('renderPhaseCards:',e);}
+try{resizeCanvas();}catch(e){console.error('resizeCanvas:',e);}
+try{renderEx();}catch(e){console.error('renderEx:',e);}
 
-let currentApp='l5';
 function showApp(app){
   currentApp=app;
+  // Zastav vše při přepnutí záložky
+  playing=false;if(rafId)cancelAnimationFrame(rafId);
+  fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);
+  synth.cancel();
   document.getElementById('main-tab-l5').classList.toggle('on',app==='l5');
   document.getElementById('main-tab-fit').classList.toggle('on',app==='fit');
   document.getElementById('subnav-l5').classList.toggle('on',app==='l5');
@@ -545,19 +755,7 @@ function showApp(app){
   else{showFitScreen('fit-plan');}
 }
 
-function showFitScreen(name){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.getElementById(name).classList.add('on');
-  document.querySelectorAll('#subnav-fit .nav-tab').forEach(t=>t.classList.remove('on','fit-on'));
-  const idx={fitplan:0,'fit-plan':0,fitex:1,'fit-ex':1,fitlog:2,'fit-log':2};
-  const i=idx[name]??0;
-  document.querySelectorAll('#subnav-fit .nav-tab')[i].classList.add('fit-on');
-  if(name==='fit-plan')renderFitPlan();
-  if(name==='fit-ex')renderFitEx();
-  if(name==='fit-log')renderFitLog();
-}
-
-const FIT_DAYS=[
+var FIT_DAYS=[
   {title:'Nohy a hýždi',focus:'Nohy',rest:false,color:'#ef9a9a',exIds:[0,1,2,3,4]},
   {title:'Ruce a ramena',focus:'Ruce',rest:false,color:'#a5d6a7',exIds:[5,6,7,8]},
   {title:'Střed těla (core)',focus:'Core',rest:false,color:'#4fc3f7',exIds:[9,10,11,12]},
@@ -567,55 +765,7 @@ const FIT_DAYS=[
   {title:'Odpočinek',focus:'Odpočinek',rest:true,color:'#7a9ab5',exIds:[]},
 ];
 
-const LC={
-  skin:'#F5C518',skinD:'#c89e00',
-  body:'#E63946',bodyD:'#9B1B23',
-  pants:'#1D3557',pantsD:'#0d1f33',
-  shoe:'#2C2C2C',shoeD:'#111',
-  arm:'#E63946',armD:'#9B1B23',
-  hand:'#F5C518',handD:'#c89e00',
-  floor:'#2a2a4a',floorD:'#3a3a6a'
-};
-function lrect(ctx,x,y,w,h,r,fill,stroke){
-  ctx.beginPath();
-  if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);
-  else ctx.rect(x,y,w,h);
-  ctx.closePath();ctx.fillStyle=fill;ctx.fill();
-  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=2;ctx.stroke();}
-}
-function lhead(ctx,cx,y,s){
-  s=s||1;
-  lrect(ctx,cx-14*s,y,28*s,26*s,5*s,LC.skin,LC.skinD);
-  lrect(ctx,cx-5*s,y-5*s,10*s,7*s,3*s,LC.skin,LC.skinD);
-  ctx.fillStyle='#111';
-  ctx.beginPath();ctx.arc(cx-6*s,y+10*s,3*s,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(cx+6*s,y+10*s,3*s,0,Math.PI*2);ctx.fill();
-  ctx.beginPath();ctx.arc(cx,y+17*s,4*s,0.2,Math.PI-.2);ctx.strokeStyle='#111';ctx.lineWidth=1.5*s;ctx.stroke();
-}
-function ltorso(ctx,cx,y,w,h,s){
-  s=s||1;w=w||28;h=h||30;
-  lrect(ctx,cx-w/2,y,w,h,3*s,LC.body,LC.bodyD);
-  lrect(ctx,cx-4*s,y-3*s,8*s,5*s,2*s,LC.body,LC.bodyD);
-}
-function lseg(ctx,x1,y1,x2,y2,w,fill,stroke){
-  const dx=x2-x1,dy=y2-y1,a=Math.atan2(dy,dx),l=Math.sqrt(dx*dx+dy*dy);
-  ctx.save();ctx.translate(x1,y1);ctx.rotate(a);
-  lrect(ctx,0,-w/2,l,w,w/2*0.7,fill,stroke);
-  ctx.restore();
-}
-function lshoe(ctx,x,y,dir){
-  dir=dir||1;
-  lrect(ctx,x-6+dir*2,y-4,16,8,3,LC.shoe,LC.shoeD);
-}
-function lfloor(ctx,y,W){
-  lrect(ctx,10,y,W-20,10,4,LC.floor,LC.floorD);
-}
-function lball(ctx,x,y,r){
-  ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);
-  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fill();
-}
-
-const fitExs=[
+var fitExs=[
   {name:'Dřep',muscle:'Nohy',sets:3,reps:'12×',rest:'60 s',muscles:['nohy','hýždi'],
    phases:['Výchozí stoj','Sestup dolů','Výdrž dole','Návrat nahoru'],durations:[4,5,4,5],
    steps:['Stůjte rovně, chodidla na šíři boků.','Pomalu sestupujte — kolena nad špičkami, záda rovná.','Výdrž dole — stehna rovnoběžně se zemí.','Pomalu se vraťte nahoru, stiskněte hýždi.'],
@@ -873,16 +1023,38 @@ const fitExs=[
 }
 ];
 
-const MUSCLE_GROUPS=['Vše','Nohy','Ruce','Core'];
-let activeMuscle='Vše',activeFitEx=0,fitPlaying=false,fitRafId=null,fitPhase=0;
-let fitDb={log:{}};
+var MUSCLE_GROUPS=['Vše','Nohy','Ruce','Core'];
+var activeMuscle='Vše',activeFitEx=0,fitPlaying=false,fitRafId=null,fitPhase=0,fitRep=1;
+var fitDb={log:{}};
+function ensureFitDb(){if(!fitDb||!fitDb.log)fitDb={log:{}};}
 function saveFitDb(){try{localStorage.setItem('fit2',JSON.stringify(fitDb));}catch(e){}}
 function loadFitDb(){try{const d=localStorage.getItem('fit2');if(d)fitDb=JSON.parse(d);}catch(e){}}
 loadFitDb();
+function showFitScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById(name).classList.add('on');
+  document.querySelectorAll('#subnav-fit .nav-tab').forEach(t=>t.classList.remove('on','fit-on'));
+  const idx={fitplan:0,'fit-plan':0,fitex:1,'fit-ex':1,fitlog:2,'fit-log':2};
+  const i=idx[name]??0;
+  document.querySelectorAll('#subnav-fit .nav-tab')[i].classList.add('fit-on');
+  if(name==='fit-plan')renderFitPlan();
+  if(name==='fit-ex')renderFitEx();
+  if(name==='fit-log')renderFitLog();
+}
+
 
 function resizeFitCanvas(){const cv=document.getElementById('fit-cv');const wrap=document.getElementById('fit-anim-wrap');if(!wrap||wrap.style.display==='none')return;const w=wrap.clientWidth-24,h=Math.round(w*200/320);cv.style.width=w+'px';cv.style.height=h+'px';cv.width=w;cv.height=h;}
 function fitGetPhaseT(ex,ph,lt){return lt;}
-function fitDrawAt(ph,lt){const ex=fitExs[activeFitEx];const cv=document.getElementById('fit-cv');if(!cv)return;ex.draw(cv.getContext('2d'),ph,lt,cv.width,cv.height);const pill=document.getElementById('fit-pill');if(pill)pill.textContent=ex.phases[ph];const prog=document.getElementById('fit-prog');if(prog)prog.style.width=((ph+lt)/ex.phases.length*100)+'%';document.querySelectorAll('.fit-step-row').forEach((el,i)=>{el.style.color=i===ph?'var(--text)':'var(--muted)';el.style.background=i===ph?'rgba(79,195,247,.08)':'transparent';const num=el.querySelector('.fit-step-num');if(num){num.style.background=i===ph?'var(--accent)':'var(--bg3)';num.style.color=i===ph?'#0f1923':'var(--muted)';}});}
+function fitDrawAt(ph,lt){
+  const ex=fitExs[activeFitEx];const cv=document.getElementById('fit-cv');
+  if(!cv||!cv.width||!cv.height)return;
+  ex.draw(cv.getContext('2d'),ph,lt,cv.width,cv.height);
+  const pill=document.getElementById('fit-pill');if(pill)pill.textContent=ex.phases[ph];
+  const prog=document.getElementById('fit-prog');if(prog)prog.style.width=((ph+lt)/ex.phases.length*100)+'%';
+  const rc=document.getElementById('fit-rep-count');
+  if(rc){const max=parseInt(ex.reps)||'?';rc.textContent=`${fitRep}. opakování`;}
+  document.querySelectorAll('.fit-step-row').forEach((el,i)=>{el.style.color=i===ph?'var(--text)':'var(--muted)';el.style.background=i===ph?'rgba(79,195,247,.08)':'transparent';const num=el.querySelector('.fit-step-num');if(num){num.style.background=i===ph?'var(--accent)':'var(--bg3)';num.style.color=i===ph?'#0f1923':'var(--muted)';}});
+}
 function fitRunPhase(ph){
   if(!fitPlaying)return;
   fitPhase=ph;
@@ -894,18 +1066,28 @@ function fitRunPhase(ph){
     fitAnimPhase(ph,0,null,dur,()=>{
       if(!fitPlaying)return;
       const n=ph+1;
-      if(n<ex.phases.length)fitRunPhase(n);
-      else setTimeout(()=>{if(fitPlaying){fitPhase=0;fitRunPhase(0);}},600);
+      if(n<ex.phases.length){
+        fitRunPhase(n);
+      } else {
+        fitRep++;
+        updateFitRepUI();
+        setTimeout(()=>{if(fitPlaying){fitPhase=0;fitRunPhase(0);}},600);
+      }
     });
   });
 }
+function updateFitRepUI(){
+  const rc=document.getElementById('fit-rep-count');
+  if(rc)rc.textContent=`${fitRep}. opakování`;
+}
 function fitAnimPhase(ph,st,lts,dur,cb){if(!fitPlaying)return;const now=performance.now();if(lts===null)lts=now;const lt=Math.min(1,st+(now-lts)/dur);fitDrawAt(ph,lt);if(lt<1)fitRafId=requestAnimationFrame(()=>fitAnimPhase(ph,lt,now,dur,cb));else if(cb)cb();}
-function fitTogglePlay(){if(fitPlaying){fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);synth.cancel();const b=document.getElementById('fit-btnP');if(b)b.textContent='Přehrát';}else{fitPlaying=true;const b=document.getElementById('fit-btnP');if(b)b.textContent='Pauza';fitRunPhase(fitPhase);}}
-function fitResetEx(){fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);synth.cancel();fitPhase=0;const b=document.getElementById('fit-btnP');if(b)b.textContent='Přehrát';fitDrawAt(0,0);}
+function fitTogglePlay(){if(fitPlaying){fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);synth.cancel();releaseWakeLock();const b=document.getElementById('fit-btnP');if(b)b.textContent='Přehrát';}else{fitPlaying=true;requestWakeLock();const b=document.getElementById('fit-btnP');if(b)b.textContent='Pauza';fitRunPhase(fitPhase);}}
+function fitResetEx(){fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);synth.cancel();fitPhase=0;fitRep=1;updateFitRepUI();const b=document.getElementById('fit-btnP');if(b)b.textContent='Přehrát';fitDrawAt(0,0);}
 
 function selectFitEx(id){
+  if(!fitExs||id===undefined||id>=fitExs.length)return;
   fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);synth.cancel();
-  activeFitEx=id;fitPhase=0;
+  activeFitEx=id;fitPhase=0;fitRep=1;
   document.getElementById('fit-anim-wrap').style.display='flex';
   setTimeout(()=>{resizeFitCanvas();fitDrawAt(0,0);},30);
   renderFitExDetail(id);
@@ -913,6 +1095,7 @@ function selectFitEx(id){
 }
 
 function renderFitExDetail(id){
+  if(!fitExs||!fitExs[id])return;
   const ex=fitExs[id];
   const ctrl=document.getElementById('fit-ex-ctrl');if(!ctrl)return;
   ctrl.innerHTML=`<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">
@@ -926,6 +1109,7 @@ function renderFitExDetail(id){
       <button class="btn-reset" onclick="fitResetEx()">Reset</button>
       <button class="vbtn" id="fit-vbtn" onclick="toggleVoice();document.getElementById('fit-vbtn').textContent=voiceOn?'Hlas: zap.':'Hlas: vyp.';document.getElementById('fit-vbtn').classList.toggle('on',voiceOn)" style="padding:5px 12px;font-size:12px">${voiceOn?'Hlas: zap.':'Hlas: vyp.'}</button>
     </div>
+    <div id="fit-rep-count" style="font-size:22px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;text-align:center;padding:8px 0;letter-spacing:.05em">1. opakování</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
       ${Array.from({length:ex.sets},(_,si)=>{const k=`fset-${id}-${si}-${todayStr()}`;const done=fitDb.log[k];return `<div class="fex-set${done?' done-set':''}" onclick="toggleFitSet('${k}',this)"><div class="fex-set-num">Série ${si+1}</div><div class="fex-set-val">${ex.reps}</div><div class="fex-set-done">✓</div></div>`;}).join('')}
     </div>
@@ -944,7 +1128,7 @@ function todayFitDayIdx(){const base=new Date(db.startDate||todayStr());return M
 function getWeekStr(){const d=new Date();return `${d.getFullYear()}-w${Math.floor((d-new Date(d.getFullYear(),0,1))/604800000)}`;}
 
 function renderFitPlan(){
-  const todayIdx=todayFitDayIdx(),el=document.getElementById('fit-plan-content');
+  ensureFitDb();const todayIdx=todayFitDayIdx(),el=document.getElementById('fit-plan-content');
   el.innerHTML=FIT_DAYS.map((day,i)=>{const isToday=i===todayIdx,isDone=fitDb.log[`fitday-${i}-${getWeekStr()}`];
     return `<div class="fit-day-card${isToday?' active-day':''}" onclick="openFitDay(${i})">
       <div class="fdc-header"><div class="fdc-num${isDone?' done-day':''}" style="${!isDone?'background:'+day.color:''}">${isDone?'✓':i+1}</div>
@@ -975,14 +1159,19 @@ function renderFitExList(ids,muscle,dayIdx){
   if(list.length)selectFitEx(list[0]);
 }
 
-function markFitDayDone(i){fitDb.log[`fitday-${i}-${getWeekStr()}`]=true;saveFitDb();renderFitPlan();showFitScreen('fit-plan');}
+function markFitDayDone(i){haptic('done');fitDb.log[`fitday-${i}-${getWeekStr()}`]=true;saveFitDb();renderFitPlan();showFitScreen('fit-plan');}
 function renderFitLog(){
-  const el=document.getElementById('fit-log-content');
+  ensureFitDb();const el=document.getElementById('fit-log-content');
   const entries=Object.entries(fitDb.log).filter(([k])=>k.startsWith('fitday-')&&fitDb.log[k]).map(([k])=>{const p=k.split('-');return{dayIdx:+p[1],week:p.slice(2).join('-')};}).sort((a,b)=>b.week.localeCompare(a.week));
   if(!entries.length){el.innerHTML='<div class="fit-empty">Zatím žádné splněné tréninky.<br>Začni cvičit!</div>';return;}
-  el.innerHTML=entries.map(e=>{const day=FIT_DAYS[e.dayIdx];return `<div class="fit-log-entry"><div class="fle-date">${e.week}</div><div class="fle-day">${day.title}</div><div class="fle-exs">${day.rest?'Odpočinek':day.exIds.map(id=>fitExs[id].name).join(', ')}</div></div>`;}).join('');
+  el.innerHTML=entries.map(e=>{const day=FIT_DAYS&&FIT_DAYS[e.dayIdx]?FIT_DAYS[e.dayIdx]:{title:"?",rest:false,exIds:[]};return `<div class="fit-log-entry"><div class="fle-date">${e.week}</div><div class="fle-day">${day.title}</div><div class="fle-exs">${day.rest?'Odpočinek':day.exIds.map(id=>fitExs[id].name).join(', ')}</div></div>`;}).join('');
 }
-window.addEventListener('resize',()=>{resizeCanvas();drawAt(curPhase,0);resizeFitCanvas();});
+window.addEventListener('resize',()=>{
+  resizeCanvas();
+  resizeFitCanvas();
+  if(currentApp==='l5')drawAt(curPhase,0);
+  else fitDrawAt(fitPhase,0);
+});
 </script>
 <div class="day-popup" id="day-popup" onclick="closeDayPopup(event)">
   <div class="day-popup-inner">
