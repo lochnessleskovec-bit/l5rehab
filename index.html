@@ -560,7 +560,20 @@ function runPhase(ph){
   speak(ex.steps[ph],()=>{
     if(!playing)return;
     const dur=ex.durations[ph]*1000;
-    animPhase(ph,0,null,dur,()=>{haptic('phase');const n=ph+1;if(n<ex.phases.length)runPhase(n);else{haptic('rep');setTimeout(()=>{if(playing){curPhase=0;curRep++;updateL5RepUI();runPhase(0);}},600);}});
+    animPhase(ph,0,null,dur,()=>{haptic('phase');const n=ph+1;if(n<ex.phases.length)runPhase(n);else{haptic('rep');curRep++;updateL5RepUI();
+        const targetReps=parseInt(exs[curEx].reps)||99;
+        if(curRep>targetReps){
+          playing=false;if(rafId)cancelAnimationFrame(rafId);
+          document.getElementById('btnP').textContent='Přehrát';
+          releaseWakeLock();
+          markDone();
+          const idx=todayIds.indexOf(curEx);
+          if(idx>=0&&idx+1<todayIds.length){
+            setTimeout(()=>switchEx(todayIds[idx+1]),1200);
+          }
+        } else {
+          setTimeout(()=>{if(playing){curPhase=0;runPhase(0);}},600);
+        }}});
   });
 }
 function animPhase(ph,st,lts,dur,cb){
@@ -1024,7 +1037,7 @@ var fitExs=[
 ];
 
 var MUSCLE_GROUPS=['Vše','Nohy','Ruce','Core'];
-var activeMuscle='Vše',activeFitEx=0,fitPlaying=false,fitRafId=null,fitPhase=0,fitRep=1;
+var activeMuscle='Vše',activeFitEx=0,fitPlaying=false,fitRafId=null,fitPhase=0,fitRep=1,currentDayExIds=[],currentDayIdx=-1;
 var fitDb={log:{}};
 function ensureFitDb(){if(!fitDb||!fitDb.log)fitDb={log:{}};}
 function saveFitDb(){try{localStorage.setItem('fit2',JSON.stringify(fitDb));}catch(e){}}
@@ -1071,7 +1084,30 @@ function fitRunPhase(ph){
       } else {
         fitRep++;
         updateFitRepUI();
-        setTimeout(()=>{if(fitPlaying){fitPhase=0;fitRunPhase(0);}},600);
+        const fitTarget=parseInt(fitExs[activeFitEx].reps)||99;
+        if(fitRep>fitTarget){
+          fitPlaying=false;if(fitRafId)cancelAnimationFrame(fitRafId);
+          synth.cancel();releaseWakeLock();
+          haptic('rep');
+          const b=document.getElementById('fit-btnP');if(b)b.textContent='Přehrát';
+          // Označ všechny série jako hotové
+          const t=todayStr();
+          for(let si=0;si<fitExs[activeFitEx].sets;si++){
+            const k=`fset-${activeFitEx}-${si}-${t}`;
+            fitDb.log[k]=true;
+          }
+          saveFitDb();
+          // Přejdi na další cvik v dni
+          const pos=currentDayExIds.indexOf(activeFitEx);
+          if(pos>=0&&pos+1<currentDayExIds.length){
+            setTimeout(()=>selectFitEx(currentDayExIds[pos+1]),1200);
+          } else if(currentDayIdx>=0){
+            // Všechny cviky hotovy - označ den
+            setTimeout(()=>markFitDayDone(currentDayIdx),1200);
+          }
+        } else {
+          setTimeout(()=>{if(fitPlaying){fitPhase=0;fitRunPhase(0);}},600);
+        }
       }
     });
   });
@@ -1137,7 +1173,7 @@ function renderFitPlan(){
     </div>`;}).join('');
 }
 
-function openFitDay(i){activeMuscle='Vše';showFitScreen('fit-ex');const day=FIT_DAYS[i];
+function openFitDay(i){activeMuscle='Vše';currentDayIdx=i;currentDayExIds=FIT_DAYS[i].exIds.slice();showFitScreen('fit-ex');const day=FIT_DAYS[i];
   const tabs=document.getElementById('muscle-tabs');
   const mgroups=day.exIds.length?['Vše',...new Set(day.exIds.map(id=>fitExs[id].muscle))]:MUSCLE_GROUPS;
   tabs.innerHTML=mgroups.map(m=>`<button class="mtab${m==='Vše'?' on':''}" onclick="filterFitEx('${m}',${JSON.stringify(day.exIds)})">${m}</button>`).join('');
